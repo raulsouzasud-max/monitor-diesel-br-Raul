@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor Diesel Brasil 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #111418;
+    --bg3: #181d23;
+    --border: rgba(255,255,255,0.07);
+    --amber: #f59e0b;
+    --amber2: #fbbf24;
+    --red: #ef4444;
+    --green: #22c55e;
+    --blue: #38bdf8;
+    --text: #e8e6e0;
+    --muted: #6b7280;
+    --mono: 'Share Tech Mono', monospace;
+    --display: 'Barlow Condensed', sans-serif;
+    --body: 'Barlow', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* GRAIN OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+    background: var(--bg2);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 20px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .logo span { color: var(--text); font-weight: 300; }
+  .header-meta {
+    display: flex; align-items: center; gap: 24px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    display: inline-block; margin-right: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ALERT BANNER */
+  .alert-banner {
+    background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
+    border-bottom: 1px solid rgba(239,68,68,0.3);
+    padding: 8px 32px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #fca5a5;
+    display: flex; align-items: center; gap: 12px;
+    animation: fadeIn 0.5s ease;
+  }
+  .alert-icon { color: var(--red); font-size: 13px; }
+
+  /* MAIN LAYOUT */
+  main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: var(--border);
+  }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+    animation: slideUp 0.6s ease both;
+  }
+  .kpi-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: rgba(245,158,11,0.3); }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--amber);
+  }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 1;
+    color: var(--amber2);
+    margin-bottom: 6px;
+  }
+  .kpi-card.green .kpi-value { color: var(--green); }
+  .kpi-card.blue .kpi-value { color: var(--blue); }
+  .kpi-card.red .kpi-value { color: var(--red); }
+  .kpi-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    background: rgba(239,68,68,0.15);
+    color: #fca5a5;
+  }
+  .kpi-badge.up { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  .kpi-badge.neutral { background: rgba(56,189,248,0.15); color: #7dd3fc; }
+  .kpi-sub {
+    font-size: 11px; color: var(--muted); margin-top: 6px;
+  }
+
+  /* CHARTS GRID */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+    animation: slideUp 0.7s ease both;
+  }
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+  }
+  .chart-title {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .chart-subtitle {
+    font-size: 11px; color: var(--muted);
+    margin-bottom: 16px;
+    font-family: var(--mono);
+  }
+
+  /* BOTTOM ROW */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+    animation: slideUp 0.8s ease both;
+  }
+
+  /* TABLE */
+  .data-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table th {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-weight: 400;
+  }
+  .data-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .price-mono { font-family: var(--mono); color: var(--amber2); }
+  .var-up { color: #fca5a5; font-family: var(--mono); font-size: 12px; }
+  .rank-num {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--muted); margin-right: 6px;
+  }
+
+  /* INSIGHT BOX */
+  .insight-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+  }
+  .insight-item {
+    display: flex; gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px; line-height: 1.5;
+  }
+  .insight-item:last-child { border-bottom: none; }
+  .insight-icon {
+    font-size: 16px; flex-shrink: 0; margin-top: 1px;
+  }
+  .insight-text { color: var(--text); }
+  .insight-text strong { color: var(--amber2); font-weight: 500; }
+
+  /* TRC SIMULATOR */
+  .sim-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+  }
+  .sim-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+  .sim-row:last-child { border-bottom: none; }
+  .sim-label { color: var(--muted); }
+  .sim-value { font-family: var(--mono); color: var(--amber2); }
+  .sim-value.red { color: #fca5a5; }
+  .sim-value.green { color: var(--green); }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .filter-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 14px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .filter-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .filter-btn.active { background: var(--amber); color: #000; border-color: var(--amber); font-weight: 600; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .footer-sources { display: flex; gap: 16px; }
+
+  /* ANIMATIONS */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+
+  /* REGION BAR */
+  .region-bar-wrap { margin: 6px 0; }
+  .region-bar-label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; margin-bottom: 3px;
+  }
+  .region-bar-label span:first-child { color: var(--text); font-family: var(--display); font-weight: 600; letter-spacing: 0.05em; }
+  .region-bar-label span:last-child { font-family: var(--mono); color: var(--amber2); }
+  .region-bar-track {
+    height: 6px; background: rgba(255,255,255,0.06); border-radius: 1px; overflow: hidden;
+  }
+  .region-bar-fill {
+    height: 100%; border-radius: 1px;
+    background: var(--amber);
+    transition: width 1s ease;
+  }
+  .region-bar-fill.high { background: var(--red); }
+  .region-bar-fill.low { background: var(--green); }
+
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2,1fr); }
+    .charts-row, .bottom-row { grid-template-columns: 1fr; }
+    main { padding: 16px; }
+    header { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Monitor<span>Diesel</span> BR</div>
+  <div class="header-meta">
+    <span><span class="live-dot"></span>ANP · Edição 11/2026</span>
+    <span>Semana: 08–14/03/2026</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div class="alert-banner">
+  <span class="alert-icon">⚠</span>
+  <span>ALERTA: Variação nacional acima de 5% em 7 dias (+12,03%) · Tensões no Estreito de Ormuz · MP 1340/2026 ativa — subsídio R$ 0,32/L + isenção PIS/Cofins</span>
+</div>
+
+<main>
+
+  <!-- KPIs -->
+  <div class="section-label">indicadores principais</div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Preço Médio Nacional · S10</div>
+      <div class="kpi-value">R$ 6,89</div>
+      <div><span class="kpi-badge up">▲ +12,03% sem.</span></div>
+      <div class="kpi-sub">Referência: semana 08–14/03/2026</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Região mais cara · Norte</div>
+      <div class="kpi-value">R$ 7,15</div>
+      <div><span class="kpi-badge up">▲ +14,7% sem.</span></div>
+      <div class="kpi-sub">RR: R$ 7,84/L (recorde estadual)</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Região mais barata · Nordeste</div>
+      <div class="kpi-value">R$ 6,55</div>
+      <div><span class="kpi-badge up">▲ +9,4% sem.</span></div>
+      <div class="kpi-sub">PE: R$ 6,23/L (menor preço país)</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Diesel A · Refinaria Petrobras</div>
+      <div class="kpi-value">R$ 3,65</div>
+      <div><span class="kpi-badge neutral">reajuste 14/03/2026</span></div>
+      <div class="kpi-sub">Participação posto: R$ 3,10/L</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="section-label">análise regional</div>
+  <div class="charts-row">
+
+    <!-- BAR CHART REGIONS -->
+    <div class="chart-card">
+      <div class="chart-title">Preço médio por região</div>
+      <div class="chart-subtitle">Diesel S10 · R$/litro · semana 11/2026</div>
+      <div style="position:relative;height:220px;">
+        <canvas id="chartRegioes"></canvas>
+      </div>
+    </div>
+
+    <!-- VARIATION CHART -->
+    <div class="chart-card">
+      <div class="chart-title">Variação semanal por região</div>
+      <div class="chart-subtitle">Comparativo % · semana 10 → semana 11/2026</div>
+      <div style="position:relative;height:220px;">
+        <canvas id="chartVariacao"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="section-label">capitais · trc · inteligência de mercado</div>
+  <div class="bottom-row">
+
+    <!-- CAPITALS TABLE -->
+    <div class="chart-card">
+      <div class="chart-title">Preços por capital</div>
+      <div class="chart-subtitle">Diesel S10 · destaque por região</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Capital</th>
+            <th>R$/L</th>
+            <th>Var. %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="rank-num">01</span>Cuiabá (MT)</td>
+            <td class="price-mono">7,21</td>
+            <td class="var-up">▲14,08%</td>
+          </tr>
+          <tr>
+            <td><span class="rank-num">02</span>Palmas (TO)</td>
+            <td class="price-mono">7,11</td>
+            <td class="var-up">▲14,68%</td>
+          </tr>
+          <tr>
+            <td><span class="rank-num">03</span>Curitiba (PR)</td>
+            <td class="price-mono">6,91</td>
+            <td class="var-up">▲14,21%</td>
+          </tr>
+          <tr>
+            <td><span class="rank-num">04</span>Salvador (BA)</td>
+            <td class="price-mono">6,90</td>
+            <td class="var-up">▲9,35%</td>
+          </tr>
+          <tr>
+            <td><span class="rank-num">05</span>São Paulo (SP)</td>
+            <td class="price-mono">6,78</td>
+            <td class="var-up">▲10,06%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TRC SIMULATOR -->
+    <div class="sim-card">
+      <div class="chart-title">Simulador TRC</div>
+      <div class="chart-subtitle">Impacto no transporte rodoviário de cargas</div>
+      <div class="filter-bar" style="margin-top:12px;">
+        <button class="filter-btn active" onclick="setTruck('truck',this)">Caminhão</button>
+        <button class="filter-btn" onclick="setTruck('bi',this)">Bitrem</button>
+        <button class="filter-btn" onclick="setTruck('carreta',this)">Carreta</button>
+      </div>
+      <div class="sim-row"><span class="sim-label">Consumo médio</span><span class="sim-value" id="s-consumo">3,2 km/L</span></div>
+      <div class="sim-row"><span class="sim-label">Custo diesel/km</span><span class="sim-value red" id="s-custo">R$ 2,15/km</span></div>
+      <div class="sim-row"><span class="sim-label">Rota 1.000 km · diesel</span><span class="sim-value red" id="s-rota">R$ 2.153</span></div>
+      <div class="sim-row"><span class="sim-label">Diesel no custo total frete</span><span class="sim-value" id="s-perc">~38%</span></div>
+      <div class="sim-row"><span class="sim-label">Ajuste frete recomendado</span><span class="sim-value green" id="s-ajuste">+4,6%</span></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);">
+        Cada +1% no diesel → +0,38% no custo do frete (referência CNT)
+      </div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div class="insight-box">
+      <div class="chart-title">Inteligência de mercado</div>
+      <div class="chart-subtitle">Insights automáticos · semana 11/2026</div>
+      <div class="insight-item">
+        <span class="insight-icon">📍</span>
+        <span class="insight-text">Região <strong>Norte</strong> está <strong>R$ 0,26/L acima</strong> da média nacional, pressionada por logística remota e menor concorrência.</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-icon">📈</span>
+        <span class="insight-text">Diesel S10 subiu <strong>+12,03%</strong> em uma semana — gatilho de alerta de <strong>5% acionado</strong> em todas as regiões.</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-icon">🛢</span>
+        <span class="insight-text">Brent próximo a <strong>US$ 100/barril</strong> + Estreito de Ormuz bloqueado: risco de novo reajuste Petrobras nas próximas semanas.</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-icon">⚖️</span>
+        <span class="insight-text">MP 1340/2026 mitigou <strong>R$ 0,64/L</strong> do impacto. Sem a medida, média nacional seria <strong>~R$ 7,53/L</strong>.</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-icon">🚛</span>
+        <span class="insight-text">Transportadoras devem revisar tabela de frete: alta de <strong>12% no diesel</strong> implica reajuste de <strong>+4,6%</strong> no valor do frete.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SERIE HISTORICA -->
+  <div class="section-label">série histórica estimada · últimas 8 semanas</div>
+  <div class="chart-card" style="margin-bottom:24px;animation:slideUp 0.9s ease both;">
+    <div class="chart-title">Evolução do preço médio nacional · Diesel S10</div>
+    <div class="chart-subtitle">R$/litro · com marcadores de eventos · 2026</div>
+    <div style="position:relative;height:200px;">
+      <canvas id="chartHistorico"></canvas>
+    </div>
+  </div>
+
+  <!-- REGION BARS -->
+  <div class="section-label">mapa de calor regional</div>
+  <div class="chart-card" style="margin-bottom:8px;animation:slideUp 1s ease both;">
+    <div class="chart-title">Intensidade de preço por região</div>
+    <div class="chart-subtitle">Diesel S10 · escala relativa ao menor preço nacional</div>
+    <div style="padding: 8px 0;">
+      <div class="region-bar-wrap">
+        <div class="region-bar-label"><span>NORTE</span><span>R$ 7,15 · ▲14,7%</span></div>
+        <div class="region-bar-track"><div class="region-bar-fill high" style="width:95%"></div></div>
+      </div>
+      <div class="region-bar-wrap" style="margin-top:10px">
+        <div class="region-bar-label"><span>CENTRO-OESTE</span><span>R$ 6,95 · ▲11,6%</span></div>
+        <div class="region-bar-track"><div class="region-bar-fill high" style="width:88%"></div></div>
+      </div>
+      <div class="region-bar-wrap" style="margin-top:10px">
+        <div class="region-bar-label"><span>SUL</span><span>R$ 6,85 · ▲14,2%</span></div>
+        <div class="region-bar-track"><div class="region-bar-fill" style="width:82%"></div></div>
+      </div>
+      <div class="region-bar-wrap" style="margin-top:10px">
+        <div class="region-bar-label"><span>SUDESTE</span><span>R$ 6,68 · ▲10,1%</span></div>
+        <div class="region-bar-track"><div class="region-bar-fill" style="width:72%"></div></div>
+      </div>
+      <div class="region-bar-wrap" style="margin-top:10px">
+        <div class="region-bar-label"><span>NORDESTE</span><span>R$ 6,55 · ▲9,4%</span></div>
+        <div class="region-bar-track"><div class="region-bar-fill low" style="width:62%"></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--muted);">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:6px;background:var(--red);border-radius:1px;display:inline-block;"></span> Acima da média</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:6px;background:var(--amber);border-radius:1px;display:inline-block;"></span> Na média</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:6px;background:var(--green);border-radius:1px;display:inline-block;"></span> Abaixo da média</span>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>Monitor Diesel BR · Dashboard não oficial · uso analítico</span>
+  <div class="footer-sources">
+    <span>ANP Edição 11/2026</span>
+    <span>Petrobras 14/03/2026</span>
+    <span>Edenred/IPTL mar/2026</span>
+    <span>MP 1340/2026</span>
+  </div>
+</footer>
+
+<script>
+// CLOCK
+function tick() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR');
+}
+tick(); setInterval(tick, 1000);
+
+// TRC SIMULATOR
+const trucks = {
+  truck:   { consumo: '3,2 km/L', custo: 2.15, rota: 2153, perc: '~38%', ajuste: '+4,6%' },
+  bi:      { consumo: '2,5 km/L', custo: 2.76, rota: 2756, perc: '~42%', ajuste: '+5,0%' },
+  carreta: { consumo: '2,8 km/L', custo: 2.46, rota: 2461, perc: '~40%', ajuste: '+4,8%' },
+};
+function setTruck(type, el) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const t = trucks[type];
+  document.getElementById('s-consumo').textContent = t.consumo;
+  document.getElementById('s-custo').textContent = 'R$ ' + t.custo.toFixed(2) + '/km';
+  document.getElementById('s-rota').textContent = 'R$ ' + t.rota.toLocaleString('pt-BR');
+  document.getElementById('s-perc').textContent = t.perc;
+  document.getElementById('s-ajuste').textContent = t.ajuste;
+}
+
+// CHART DEFAULTS
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'Share Tech Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const gridColor = 'rgba(255,255,255,0.05)';
+const amber = '#f59e0b';
+const red = '#ef4444';
+const green = '#22c55e';
+const blue = '#38bdf8';
+
+// CHART: REGIOES
+new Chart(document.getElementById('chartRegioes'), {
+  type: 'bar',
+  data: {
+    labels: ['Norte','Centro-Oeste','Sul','Sudeste','Nordeste'],
+    datasets: [{
+      data: [7.15, 6.95, 6.85, 6.68, 6.55],
+      backgroundColor: [red, amber, amber, '#ca8a04', green],
+      borderRadius: 2,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: v => 'R$ ' + v.raw.toFixed(2) + '/L' } } },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: '#9ca3af' } },
+      y: { grid: { color: gridColor }, ticks: { color: '#9ca3af', callback: v => 'R$' + v.toFixed(2) }, min: 6.0, max: 7.5 }
+    }
+  }
+});
+
+// CHART: VARIACAO
+new Chart(document.getElementById('chartVariacao'), {
+  type: 'bar',
+  data: {
+    labels: ['Norte','Sul','Centro-O.','Sudeste','Nordeste'],
+    datasets: [{
+      data: [14.7, 14.2, 11.6, 10.1, 9.4],
+      backgroundColor: [red, red, amber, amber, '#ca8a04'],
+      borderRadius: 2,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: v => '+' + v.raw.toFixed(1) + '%' } } },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: '#9ca3af' } },
+      y: { grid: { color: gridColor }, ticks: { color: '#9ca3af', callback: v => v + '%' }, min: 0, max: 18 }
+    }
+  }
+});
+
+// CHART: HISTORICO
+const labels = ['24/jan','31/jan','07/fev','14/fev','21/fev','28/fev','07/mar','14/mar'];
+const data   = [5.98, 6.02, 6.08, 6.12, 6.05, 6.15, 6.15, 6.89];
+const ctx = document.getElementById('chartHistorico').getContext('2d');
+const grad = ctx.createLinearGradient(0, 0, 0, 200);
+grad.addColorStop(0, 'rgba(245,158,11,0.3)');
+grad.addColorStop(1, 'rgba(245,158,11,0)');
+
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      data,
+      borderColor: amber,
+      borderWidth: 2,
+      backgroundColor: grad,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: data.map((v,i) => i === 7 ? red : amber),
+      pointRadius: data.map((v,i) => i === 7 ? 6 : 3),
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: v => 'R$ ' + v.raw.toFixed(2) + '/L' } },
+      annotation: {}
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: '#9ca3af' } },
+      y: { grid: { color: gridColor }, ticks: { color: '#9ca3af', callback: v => 'R$' + v.toFixed(2) }, min: 5.7, max: 7.2 }
+    }
+  }
+});
+</script>
+</body>
+</html>
